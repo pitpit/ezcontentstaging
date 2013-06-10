@@ -353,6 +353,120 @@ class eZRestApiGGWSClientStagingTransport extends eZBaseStagingTransport impleme
                 }
                 return 0;
 
+            case eZContentStagingEvent::ACTION_CREATE_NODE:
+                // this can be either a content creation or update
+                // in any way, it is a multi-step process
+
+                // step 1: create new version
+
+                /// @todo what if we create many drafts and we discard them? Is the first version created still 1? test it!
+                $RemoteObjRemoteID = $this->buildRemoteId( $event->attribute( 'object_id' ), $data['objectRemoteID'], 'object' );
+                $syncdate = false;
+                // allow incomplete ini not to raise a warning: use @
+                if ( @$this->target->attribute( 'use_source_creation_dates_on_target' ) == 'enabled')
+                {
+                    $syncdate = true;
+                }
+                $url = "/content/objects?parentRemoteId=" . $this->buildRemoteId( $data['parentNodeID'], $data['parentNodeRemoteID'] );
+                $payload = self::encodeObject( $event->attribute( 'object_id' ),  $data['version'], $data['locale'], false, $RemoteObjRemoteID, $syncdate );
+
+                if ( !$payload )
+                {
+                    throw new Exception( "Can not serialize object to be sent", eZContentStagingEvent::ERROR_OBJECTCANNOTSERIALIZE );
+                }
+
+                $out = $this->restCall( "POST", $url, $payload );
+                if ( !is_array( $out ) || !isset( $out['Location'] ) )
+                {
+                    throw new Exception( "Received invalid data in response", eZContentStagingEvent::ERROR_GENERICTRANSPORTERROR );
+                }
+
+                // step 2: publish created version
+                $array = explode( '/', $out['Location'] );
+                $versionNr = end( $array );
+                if ( $versionNr == '' )
+                {
+                    throw new Exception( "Missing version number in response", eZContentStagingEvent::ERROR_GENERICTRANSPORTERROR );
+                }
+                $out = $this->restCall( "POST", "/content/objects/remote/$RemoteObjRemoteID/versions/$versionNr" );
+
+                /// @todo test format for $out
+                $array = explode( '/', $out['Location'] );
+                $remoteNodeId = end( $array );
+                if ( $remoteNodeId == '' )
+                {
+                    throw new Exception( "Missing node id in response", eZContentStagingEvent::ERROR_GENERICTRANSPORTERROR );
+                }
+                $RemoteNodeRemoteID = $this->buildRemoteId( $data['nodeID'], $data['nodeRemoteID'] );
+                $out = $this->restCall( "PUT", "/content/locations/$remoteNodeId", array( 'remoteId' => $RemoteNodeRemoteID ) );
+                if ( !is_array( $out ) || !isset( $out['remoteId'] ) )
+                {
+                    throw new Exception( "Received invalid data in response", eZContentStagingEvent::ERROR_GENERICTRANSPORTERROR );
+                }
+                if ( $out['remoteId'] != $RemoteNodeRemoteID )
+                {
+                    throw new Exception( "node remoteId in response does not match what was sent", eZContentStagingEvent::ERROR_GENERICTRANSPORTERROR );
+                }
+                return 0;
+
+            case eZContentStagingEvent::ACTION_CREATE_OBJECT:
+                // this can be either a content creation or update
+                // in any way, it is a multi-step process
+
+                // step 1: create new version
+
+                /// @todo what if we create many drafts and we discard them? Is the first version created still 1? test it!
+                $RemoteObjRemoteID = $this->buildRemoteId( $event->attribute( 'object_id' ), $data['objectRemoteID'], 'object' );
+                $syncdate = false;
+                // allow incomplete ini not to raise a warning: use @
+                if ( @$this->target->attribute( 'use_source_creation_dates_on_target' ) == 'enabled')
+                {
+                    $syncdate = true;
+                }
+                $url = "/content/objects";
+                $payload = self::encodeObject( $event->attribute( 'object_id' ),  $data['version'], $data['locale'], false, $RemoteObjRemoteID, $syncdate );
+
+                if ( !$payload )
+                {
+                    throw new Exception( "Can not serialize object to be sent", eZContentStagingEvent::ERROR_OBJECTCANNOTSERIALIZE );
+                }
+
+                $out = $this->restCall( "POST", $url, $payload );
+                if ( !is_array( $out ) || !isset( $out['Location'] ) )
+                {
+                    throw new Exception( "Received invalid data in response", eZContentStagingEvent::ERROR_GENERICTRANSPORTERROR );
+                }
+
+                // step 2: publish created version
+                $array = explode( '/', $out['Location'] );
+                $versionNr = end( $array );
+                if ( $versionNr == '' )
+                {
+                    throw new Exception( "Missing version number in response", eZContentStagingEvent::ERROR_GENERICTRANSPORTERROR );
+                }
+                // $out = $this->restCall( "POST", "/content/objects/remote/$RemoteObjRemoteID/versions/$versionNr" );
+
+                //     /// @todo test format for $out
+                //     $array = explode( '/', $out['Location'] );
+
+                    // $remoteNodeId = end( $array );
+                    // if ( $remoteNodeId == '' )
+                    // {
+                    //     throw new Exception( "Missing node id in response", eZContentStagingEvent::ERROR_GENERICTRANSPORTERROR );
+                    // }
+                    // $RemoteNodeRemoteID = $this->buildRemoteId( $data['nodeID'], $data['nodeRemoteID'] );
+                    // $out = $this->restCall( "PUT", "/content/locations/$remoteNodeId", array( 'remoteId' => $RemoteNodeRemoteID ) );
+                    // if ( !is_array( $out ) || !isset( $out['remoteId'] ) )
+                    // {
+                    //     throw new Exception( "Received invalid data in response", eZContentStagingEvent::ERROR_GENERICTRANSPORTERROR );
+                    // }
+                    // if ( $out['remoteId'] != $RemoteNodeRemoteID )
+                    // {
+                    //     throw new Exception( "node remoteId in response does not match what was sent", eZContentStagingEvent::ERROR_GENERICTRANSPORTERROR );
+                    // }
+
+                return 0;
+
             default:
                 throw new Exception( "Event type " . $event->attribute( 'to_sync' ) . " unknown", eZContentStagingEvent::ERROR_EVENTTYPEUNKNOWNTOTRANSPORT ); // should we store this error code in this class instead?
         }

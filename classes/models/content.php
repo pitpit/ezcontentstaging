@@ -187,7 +187,7 @@ class eZContentStagingContent extends contentStagingBase
      * @todo fix object publication date if the parameter is received
      * @todo change user id if the parameter is received
      */
-    static public function createContent( eZContentObjectTreeNode $parent, $input, $sectionId = null )
+    static public function createContent( eZContentObjectTreeNode $parent = null, $input, $sectionId = null )
     {
         $class = eZContentClass::fetchByIdentifier( $input['contentType'] );
         if ( !$class instanceof eZContentClass )
@@ -238,17 +238,19 @@ class eZContentStagingContent extends contentStagingBase
             }
             $content->store();
 
-            $nodeAssignment = eZNodeAssignment::create(
-                array(
-                    'contentobject_id' => $content->attribute( 'id' ),
-                    'contentobject_version' => $content->attribute( 'current_version' ),
-                    'parent_node' => $parent->attribute( 'node_id' ),
-                    'is_main' => 1,
-                    'sort_field' => $class->attribute( 'sort_field' ),
-                    'sort_order' => $class->attribute( 'sort_order' )
-                )
-            );
-            $nodeAssignment->store();
+            if (null !== $parent) {
+                $nodeAssignment = eZNodeAssignment::create(
+                    array(
+                        'contentobject_id' => $content->attribute( 'id' ),
+                        'contentobject_version' => $content->attribute( 'current_version' ),
+                        'parent_node' => $parent->attribute( 'node_id' ),
+                        'is_main' => 1,
+                        'sort_field' => $class->attribute( 'sort_field' ),
+                        'sort_order' => $class->attribute( 'sort_order' )
+                    )
+                );
+                $nodeAssignment->store();
+            }
 
             $version = $content->version( 1 );
             // The date of version creation we set to object publication date,

@@ -120,11 +120,6 @@ class eZContentStagingRestContentController extends eZContentStagingRestBaseCont
      */
     public function doCreate()
     {
-        if ( !isset( $this->request->get['parentRemoteId'] ) && !isset( $this->request->get['parentId'] ) )
-        {
-            return self::errorResult( ezpHttpResponseCodes::BAD_REQUEST, 'The "parentRemoteId"or "parentId" parameters are missing' );
-        }
-
         if ( isset( $this->request->get['parentRemoteId'] ) )
         {
             $parentRemoteId = $this->request->get['parentRemoteId'];
@@ -134,7 +129,7 @@ class eZContentStagingRestContentController extends eZContentStagingRestBaseCont
                 return self::errorResult( ezpHttpResponseCodes::NOT_FOUND, "Cannot find the location with remote id '{$parentRemoteId}'" );
             }
         }
-        else
+        else if ( isset( $this->request->get['parentRemoteId'] ) )
         {
             $parentId = $this->request->get['parentId'];
             $node = eZContentObjectTreeNode::fetch( $parentId );
@@ -142,6 +137,9 @@ class eZContentStagingRestContentController extends eZContentStagingRestBaseCont
             {
                 return self::errorResult( ezpHttpResponseCodes::NOT_FOUND, "Cannot find the location with id '{$parentId}'" );
             }
+        } else {
+            //no node
+            $node = null;
         }
 
         $sectionId = null;

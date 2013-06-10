@@ -36,6 +36,8 @@ class eZContentStagingEvent extends eZPersistentObject
     // the 'initializenode' event is used to inject remote_node_id and
     // remote_object_id into the remote node (known by its node_id)
     const ACTION_UPDATEREMOTEIDS = 65536;
+    const ACTION_CREATE_NODE = 131072;
+    const ACTION_CREATE_OBJECT = 262144;
 
     static $syncStrings = array(
         self::ACTION_ADDLOCATION => 'location added',
@@ -446,7 +448,13 @@ class eZContentStagingEvent extends eZPersistentObject
         {
             $conditions['status'] = (int)$status;
         }
-        $limits = array();
+        if ( $offset !== null || $limit != null )
+        {
+            $limits = array();
+        } else {
+            $limits = null;
+        }
+
         if ( $offset !== null )
         {
             $limits['offset'] = $offset;
