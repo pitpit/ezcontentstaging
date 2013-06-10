@@ -187,7 +187,7 @@ class eZContentStagingContent extends contentStagingBase
      * @todo fix object publication date if the parameter is received
      * @todo change user id if the parameter is received
      */
-    static public function createContent( eZContentObjectTreeNode $parent = null, $input, $sectionId = null )
+    static public function createContent( $parent, $input, $sectionId = null )
     {
         $class = eZContentClass::fetchByIdentifier( $input['contentType'] );
         if ( !$class instanceof eZContentClass )
