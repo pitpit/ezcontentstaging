@@ -444,26 +444,7 @@ class eZRestApiGGWSClientStagingTransport extends eZBaseStagingTransport impleme
                 {
                     throw new Exception( "Missing version number in response", eZContentStagingEvent::ERROR_GENERICTRANSPORTERROR );
                 }
-                // $out = $this->restCall( "POST", "/content/objects/remote/$RemoteObjRemoteID/versions/$versionNr" );
-
-                //     /// @todo test format for $out
-                //     $array = explode( '/', $out['Location'] );
-
-                    // $remoteNodeId = end( $array );
-                    // if ( $remoteNodeId == '' )
-                    // {
-                    //     throw new Exception( "Missing node id in response", eZContentStagingEvent::ERROR_GENERICTRANSPORTERROR );
-                    // }
-                    // $RemoteNodeRemoteID = $this->buildRemoteId( $data['nodeID'], $data['nodeRemoteID'] );
-                    // $out = $this->restCall( "PUT", "/content/locations/$remoteNodeId", array( 'remoteId' => $RemoteNodeRemoteID ) );
-                    // if ( !is_array( $out ) || !isset( $out['remoteId'] ) )
-                    // {
-                    //     throw new Exception( "Received invalid data in response", eZContentStagingEvent::ERROR_GENERICTRANSPORTERROR );
-                    // }
-                    // if ( $out['remoteId'] != $RemoteNodeRemoteID )
-                    // {
-                    //     throw new Exception( "node remoteId in response does not match what was sent", eZContentStagingEvent::ERROR_GENERICTRANSPORTERROR );
-                    // }
+                $out = $this->restCall( "POST", "/content/objects/remote/$RemoteObjRemoteID/versions/$versionNr" );
 
                 return 0;
 
