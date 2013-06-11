@@ -463,6 +463,23 @@ class eZContentStagingField
                         'text' => $attribute->attribute( 'data_text' ) );
                 }
                 break;
+            case 'ezenum':
+                $this->value = array();
+
+                $contentObjectAttributeID = $attribute->attribute( 'id' );
+                $contentObjectAttributeVersion = $attribute->attribute( 'version' );
+
+                $enumElements = eZEnumObjectValue::fetchAllElements( $contentObjectAttributeID, $contentObjectAttributeVersion );
+
+                foreach ( $enumElements as $enumElement )
+                {
+                    $this->value[] = array(
+                        'id' => $enumElement->attribute( 'enumid' ),
+                        'value' => $enumElement->attribute( 'enumvalue' ),
+                        'element' => $enumElement->attribute( 'enumelement' ),
+                    );
+                }
+                break;
 
             // known bug in ezuser serialization: #018609
             case 'ezuser':
@@ -977,6 +994,25 @@ class eZContentStagingField
                     //$xmlText = eZXMLTextType::domString( $doc );
                 }
                 $attribute->fromString( $doc->saveXML() );
+                break;
+            case 'ezenum':
+
+                $contentObjectAttributeID = $attribute->attribute( 'id' );
+                $contentObjectAttributeVersion = $attribute->attribute( 'version' );
+
+                foreach ( $value as $enumElement )
+                {
+                    $eID      = $enumElement['id'];
+                    $eValue   = $enumElement['value'];
+                    $eElement = $enumElement['element'];
+
+                    eZEnum::storeObjectEnumeration( $contentObjectAttributeID,
+                                                    $contentObjectAttributeVersion,
+                                                    $eID,
+                                                    $eElement,
+                                                    $eValue );
+                }
+
                 break;
 
             default:
