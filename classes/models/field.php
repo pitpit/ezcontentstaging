@@ -481,8 +481,32 @@ class eZContentStagingField
                 }
                 break;
 
+            case 'ezobjectrelationbrowse':
+                if ( $ridGenerator )
+                {
+                    $relationList = $attribute->attribute( 'content' );
+                    $relationList = $relationList['relation_browse'];
+                    $values = array();
+                    foreach ( $relationList as $relatedObjectInfo )
+                    {
+                        // nb: for the object relation we check for objects that have disappeared we do it here too. Even though it is bad for perfs...
+                        $relatedObject = eZContentObject::fetch( $relatedObjectInfo['contentobject_id'] );
+                        if ( !$relatedObject )
+                        {
+                            eZDebug::writeError( "Cannot encode attribute for push to staging server: related object {$relatedObjectInfo['contentobject_id']} not found for attribute in lang $locale", __METHOD__ );
+                            continue;
+                        }
+                        $values[] = 'remoteId:' . $ridGenerator->buildRemoteId( $relatedObjectInfo['contentobject_id'], $relatedObjectInfo['contentobject_remote_id'], 'object' );
+                    }
+                    $this->value = $values;
+                }
+                else
+                {
+                    $this->value = explode( '-', $attribute->toString() );
+                }
+                break;
+
             // known bug in ezuser serialization: #018609
-            case 'ezuser':
 
             default:
                 $this->value = $attribute->toString();
@@ -996,7 +1020,6 @@ class eZContentStagingField
                 $attribute->fromString( $doc->saveXML() );
                 break;
             case 'ezenum':
-
                 $contentObjectAttributeID = $attribute->attribute( 'id' );
                 $contentObjectAttributeVersion = $attribute->attribute( 'version' );
 
@@ -1013,6 +1036,40 @@ class eZContentStagingField
                                                     $eValue );
                 }
 
+                break;
+
+            case 'ezobjectrelationbrowse':
+                $localIds = array();
+                foreach ( $value as $key => $item )
+                {
+                    if ( strpos( $item, 'remoteId:' ) === 0 )
+                    {
+                        $item = substr( $item, 9 );
+                        $object = eZContentObject::fetchByRemoteId( $item );
+                        if ( $object )
+                        {
+                            $localIds[] = $object->attribute( 'id' );
+                        }
+                        else
+                        {
+                            $attrname = $attribute->attribute( 'contentclass_attribute_identifier' );
+                            eZDebug::writeWarning( "Can not create relation because object with remote id {$item} is missing in attribute $attrname", __METHOD__ );
+                        }
+                    }
+                    else
+                    {
+                        $localIds[] = $item;
+                    }
+                }
+                /// @todo we only catch one error type here, but we should catch more
+                if ( empty( $localIds ) && !empty( $value ) )
+                {
+                    $ok = false;
+                }
+                else
+                {
+                    $ok = $attribute->fromString( implode( '-', $localIds ) );
+                }
                 break;
 
             default:
